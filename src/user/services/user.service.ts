@@ -4,17 +4,29 @@ import { User } from '../schemas/user.schemas';
 import mongoose, { Model } from 'mongoose';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UpdateUserDto } from '../dtos/update-user.dto';
+import { UserSettings } from '../schemas/user-settings.schema';
 
 @Injectable()
 export class UserService {
     constructor(
-        @InjectModel(User.name) private readonly userModel: Model<User>
+        @InjectModel(User.name) private readonly userModel: Model<User>,
+        @InjectModel(UserSettings.name) private readonly userSettingsModel: Model<UserSettings>,
     ) { }
 
-    async createUser(payload: CreateUserDto): Promise<User> {
+    async createUser({ userSettings, ...payload }: CreateUserDto): Promise<User> {
         try {
-            const newUser = new this.userModel(payload);
-            return newUser.save();
+            if (userSettings) {
+                const newUserSettings = new this.userSettingsModel(userSettings);
+                const savedUserSettings = await newUserSettings.save();
+                const newUser = new this.userModel({
+                    ...payload,
+                    settings: savedUserSettings._id,
+                });
+                return await newUser.save();
+            } else {
+                const newUser = new this.userModel(payload);
+                return await newUser.save();
+            }
         } catch (error) {
             throw error;
         }
@@ -22,7 +34,7 @@ export class UserService {
 
     async getUsers(): Promise<User[]> {
         try {
-            return await this.userModel.find();
+            return await this.userModel.find().populate('settings');
         } catch (error) {
             throw error;
         }
@@ -34,7 +46,7 @@ export class UserService {
             if (!isValid) {
                 throw new HttpException('Invalid Id', 404);
             }
-            return await this.userModel.findById(id);
+            return await this.userModel.findById(id).populate('settings');
         } catch (error) {
             throw error;
         }
