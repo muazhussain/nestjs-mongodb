@@ -34,7 +34,7 @@ export class UserService {
 
     async getUsers(): Promise<User[]> {
         try {
-            return await this.userModel.find().populate('settings');
+            return await this.userModel.find().populate(['settings', 'posts']);
         } catch (error) {
             throw error;
         }
@@ -46,7 +46,7 @@ export class UserService {
             if (!isValid) {
                 throw new HttpException('Invalid Id', 404);
             }
-            return await this.userModel.findById(id).populate('settings');
+            return await this.userModel.findById(id).populate(['settings', 'posts']);
         } catch (error) {
             throw error;
         }
